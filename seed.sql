@@ -6,7 +6,7 @@ USE employees_db;
 
 CREATE TABLE department (
     id INT (11) NOT NULL AUTO_INCREMENT,
-    name VARCHAR(30) NOT NULL,
+    department VARCHAR(30) NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -29,29 +29,37 @@ CREATE TABLE employee (
 
 -- FOREIGN KEY (PersonID) REFERENCES Persons(PersonID)
 
-INSERT INTO department (name)
+INSERT INTO department (department)
 VALUES ("Marketing");
 
-INSERT INTO department (name)
+INSERT INTO department (department)
 VALUES ("Finance");
 
-INSERT INTO department (name)
+INSERT INTO department (department)
 VALUES ("QA");
 
-INSERT INTO role (title, salary)
-VALUES ("Manager", 50000.00), ("CFO", 1000000.00), ("Intern", 10000.00);
+INSERT INTO role (title, salary, department_id)
+VALUES ("Manager", 50000.00, 1), ("CFO", 1000000.00, 2), ("Intern", 10000.00, 3);
 
-INSERT INTO employee (first_name, last_name, manager_id)
-VALUES ("John", "Smith"), ("Buster", "Posey"), ("Pablo", "Sandoval", 1);
+INSERT INTO employee (first_name, last_name, role_id, manager_id)
+VALUES ("John", "Smith", 1, 2), ("Buster", "Posey", 2, 0), ("Pablo", "Sandoval", 3, 1);
 
-UPDATE employee
-SET role_id = 1
-WHERE id = 1;
+SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department, role.salary
+FROM ((employee
+INNER JOIN role ON employee.role_id = role.id)
+INNER JOIN department ON role.department_id = department.id);
 
-UPDATE employee
-SET role_id = 2
-WHERE id = 2;
+SELECT
+    e.id,
+    CONCAT (m.first_name, ' ', m.last_name) manager
+FROM
+    employee e
+LEFT JOIN employee m ON m.id = e.manager_id;
+-- ORDER BY
+    -- manager;
 
-UPDATE employee
-SET role_id = 3
-WHERE id = 3;
+-- roles
+SELECT role.title, department.department, role.salary
+FROM (role
+INNER JOIN department ON role.department_id = department.id);
+
