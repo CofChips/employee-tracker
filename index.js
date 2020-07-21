@@ -3,12 +3,12 @@ const inquirer = require("inquirer");
 
 const ctable = require('console.table');
 
-const querryAll1 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary
+const queryAll1 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary
 FROM ((employee
 INNER JOIN role ON employee.role_id = role.id)
 INNER JOIN department ON role.department_id = department.id);`
 
-const querryAll2 = `SELECT
+const queryAll2 = `SELECT
 e.id,
 CONCAT (m.first_name, ' ', m.last_name) manager
 FROM
@@ -18,6 +18,12 @@ INNER JOIN employee m ON m.id = e.manager_id;`
 const queryRoles = `SELECT role.title, department.department, role.salary
 FROM (role
 INNER JOIN department ON role.department_id = department.id);`
+
+const queryDepartments = `SELECT department FROM department;`
+
+// const addDepartment = `INSERT INTO department (department)
+// VALUES ("${department}");`
+
 
 // var sql = "SELECT * FROM ?? WHERE ?? = ?";
 // var inserts = ['users', 'id', userId];
@@ -55,7 +61,7 @@ function afterConnection() {
 
 function viewAllEmployees() {
     const employeeList = [];
-    connection.query(querryAll1, function (err, res) {
+    connection.query(queryAll1, function (err, res) {
         if (err) throw err;
         //   console.log(res);
         console.table(res);
@@ -66,7 +72,7 @@ function viewAllEmployees() {
 
 
     });
-    connection.query(querryAll2, function (err, res) {
+    connection.query(queryAll2, function (err, res) {
         if (err) throw err;
         //   console.log(res);
         for (let j = 0; j < res.length; j++) {
@@ -88,6 +94,23 @@ function viewRoles() {
     });
 }
 
+function viewDeparment() {
+    connection.query(queryDepartments, function (err, res) {
+        if (err) throw err;
+        console.log('\n');
+        console.table(res);
+    });
+}
+
+function newDepartment(department) {
+    connection.query(`INSERT INTO department (department)
+    VALUES ("${department}");`, function (err, res) {
+        if (err) throw err;
+        // console.log('\n');
+        // console.table(res);
+    });
+}
+
 // console.table([
 //     {
 //       name: 'foo',
@@ -99,7 +122,7 @@ function viewRoles() {
 //   ]);
 
 
-function run(){
+function run() {
     inquirer.prompt([
         {
             type: "list",
@@ -115,15 +138,29 @@ function run(){
                 "Update employee roles"
             ]
         }
-    
+
     ]).then(data => {
         if (data.startPoint === "View employees") {
             viewAllEmployees()
-            
         }
         else if (data.startPoint === "View roles") {
             viewRoles()
-        
+        }
+        else if (data.startPoint === "View departments") {
+            viewDeparment()
+        }
+        else if (data.startPoint === "Add departments") {
+            inquirer.prompt([
+                {
+                    type: "input",
+                    name: "newDepartment",
+                    message: "What is the name of the new department?",
+                }
+
+            ]).then(data => {
+                newDepartment(data.newDepartment);
+                viewDeparment();
+            })
         }
     })
 }
