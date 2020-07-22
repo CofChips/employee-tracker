@@ -151,7 +151,7 @@ function run() {
         for (let j = 0; j < res.length; j++) {
             choicesManager.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
         }
-        choicesManager.push({name: "None", value: 0})
+        choicesManager.push({name: "None", value: null})
     });
 
     inquirer.prompt([
@@ -186,7 +186,15 @@ function run() {
                     {
                         type: "input",
                         name: "newDepartment",
-                        message: "What is the name of the new department?"
+                        message: "What is the name of the new department?",
+                        validate: function (value) {
+                            if (value) {
+                                return true
+                            }
+                            else {
+                                return "Please enter a department name"
+                            }
+                        }
                     }
 
                 ]).then(data => {
