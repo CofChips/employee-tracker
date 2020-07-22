@@ -15,7 +15,7 @@ FROM
 employee e
 LEFT JOIN employee m ON m.id = e.manager_id;`
 
-const queryRoles = `SELECT role.title, department.department, role.salary,
+const queryRoles = `SELECT role.title, department.department, role.salary
 FROM (role
 INNER JOIN department ON role.department_id = department.id);`
 
@@ -120,18 +120,18 @@ function run() {
     connection.query("SELECT id, CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
         if (err) throw err;
         for (let j = 0; j < res.length; j++) {
-            choicesEmployee.push({name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id});
+            choicesEmployee.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
         }
         // console.log(choicesEmployee)
     });
 
-    
+
     let choicesRole = [];
     let choicesAllRole = [];
     connection.query("SELECT * FROM role", function (err, res) {
         if (err) throw err;
         for (let i = 0; i < res.length; i++) {
-            choicesRole.push({name: res[i].title, value: res[i].id})
+            choicesRole.push({ name: res[i].title, value: res[i].id })
             choicesAllRole.push(res[i])
         }
         // console.log(choicesRole)
@@ -189,12 +189,25 @@ function run() {
                 {
                     type: "input",
                     name: "newRoleName",
-                    message: "What is the name of the new role?"
+                    message: "What is the name of the new role?",
+                    validate: function (value) {
+                        if (value) {
+                            return true
+                        }
+                        else {
+                            return "Please enter a role name"
+                        }
+                    }
                 },
                 {
                     type: "input",
                     name: "newRoleSalary",
-                    message: "What is the salary of the new role?"
+                    message: "What is the salary of the new role?",
+                    validate: function (value) {
+                        var valid = !isNaN(parseFloat(value));
+                        return valid || 'Please enter a number';
+                    },
+                    filter: Number,
                 },
                 {
                     type: "list",
@@ -233,12 +246,28 @@ function run() {
                 {
                     type: "input",
                     name: "newEmployeeFirstName",
-                    message: "What is the first name of the new employee?"
+                    message: "What is the first name of the new employee?",
+                    valdiate: function (value) {
+                        if (value) {
+                            return true
+                        }
+                        else {
+                            return "Please enter a first name"
+                        }
+                    }
                 },
                 {
                     type: "input",
                     name: "newEmployeeLastName",
-                    message: "What is the last name of the new employee?"
+                    message: "What is the last name of the new employee?",
+                    valdiate: function (value) {
+                        if (value) {
+                            return true
+                        }
+                        else {
+                            return "Please enter a last name"
+                        }
+                    }
                 },
                 {
                     type: "list",
@@ -265,7 +294,7 @@ function run() {
 
                 }
                 else {
-                    
+
                     let newEmployeeRole = "";
                     connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
                         if (err) throw err;
@@ -289,34 +318,8 @@ function run() {
 
         else if (data.startPoint === "Update employee roles") {
 
-            // let choicesEmployee = [];
-            // connection.query("SELECT CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
-            //     if (err) throw err;
-            //     for (let j = 0; j < res.length; j++) {
-            //         choicesEmployee.push(res[j]["CONCAT (first_name, ' ', last_name)"]);
-            //     }
-            //     // console.log(choicesEmployee)
-            // });
-
-
-
-            // let choicesRole = [];
-            // connection.query(queryRoles, function (err, res) {
-            //     if (err) throw err;
-            //     for (let i = 0; i < res.length; i++) {
-            //         choicesRole.push(res[i].title)
-            //     }
-            //     // console.log(choicesRole)
-
-            // });
-
-
             inquirer.prompt([
-                // {
-                //     type: "input",
-                //     name: "newEmployeeLastName",
-                //     message: "Test?"
-                // },
+
                 {
                     type: "list",
                     name: "employeeUpdate",
@@ -332,9 +335,10 @@ function run() {
             ]).then(data => {
                 connection.query(`UPDATE employee SET role_id = ${data.newEmployeeRole} WHERE id =${data.employeeUpdate};`, function (err, res) {
                     if (err) throw err;
-                    console.log(data.employeeUpdate+"'s role has been updated!")
+                    console.log("Role has been updated!")
+                    run();
                 })
-                run();
+
             })
         }
         // end of.then
