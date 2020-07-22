@@ -15,7 +15,7 @@ FROM
 employee e
 LEFT JOIN employee m ON m.id = e.manager_id;`
 
-const queryRoles = `SELECT role.title, department.department, role.salary
+const queryRoles = `SELECT role.title, department.department, role.salary,
 FROM (role
 INNER JOIN department ON role.department_id = department.id);`
 
@@ -89,7 +89,7 @@ function viewDeparment() {
 function newDepartment(department) {
     connection.query(`INSERT INTO department (department)
     VALUES ("${department}");`, function (err, res) {
-        if (err) throw err;    
+        if (err) throw err;
     });
     console.log("\nNew department added!\n");
     run();
@@ -115,6 +115,29 @@ function newEmployee(first_name, last_name, role_id, manager_id) {
 
 
 function run() {
+
+    let choicesEmployee = [];
+    connection.query("SELECT id, CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
+        if (err) throw err;
+        for (let j = 0; j < res.length; j++) {
+            choicesEmployee.push({name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id});
+        }
+        // console.log(choicesEmployee)
+    });
+
+    
+    let choicesRole = [];
+    let choicesAllRole = [];
+    connection.query("SELECT * FROM role", function (err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            choicesRole.push({name: res[i].title, value: res[i].id})
+            choicesAllRole.push(res[i])
+        }
+        // console.log(choicesRole)
+
+    });
+
     inquirer.prompt([
         {
             type: "list",
@@ -151,7 +174,6 @@ function run() {
 
             ]).then(data => {
                 newDepartment(data.newDepartment);
-                viewDeparment();
             })
         }
         else if (data.startPoint === "Add roles") {
@@ -240,9 +262,10 @@ function run() {
                         newEmployeeRole = res[0].id;
                         newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, 0);
                     })
-  
+
                 }
                 else {
+                    
                     let newEmployeeRole = "";
                     connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
                         if (err) throw err;
@@ -257,6 +280,61 @@ function run() {
                         newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, newEmployeeManager);
                     })
                 }
+            })
+
+
+
+
+        }
+
+        else if (data.startPoint === "Update employee roles") {
+
+            // let choicesEmployee = [];
+            // connection.query("SELECT CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
+            //     if (err) throw err;
+            //     for (let j = 0; j < res.length; j++) {
+            //         choicesEmployee.push(res[j]["CONCAT (first_name, ' ', last_name)"]);
+            //     }
+            //     // console.log(choicesEmployee)
+            // });
+
+
+
+            // let choicesRole = [];
+            // connection.query(queryRoles, function (err, res) {
+            //     if (err) throw err;
+            //     for (let i = 0; i < res.length; i++) {
+            //         choicesRole.push(res[i].title)
+            //     }
+            //     // console.log(choicesRole)
+
+            // });
+
+
+            inquirer.prompt([
+                // {
+                //     type: "input",
+                //     name: "newEmployeeLastName",
+                //     message: "Test?"
+                // },
+                {
+                    type: "list",
+                    name: "employeeUpdate",
+                    message: "Select the employee id update",
+                    choices: choicesEmployee
+                },
+                {
+                    type: "list",
+                    name: "newEmployeeRole",
+                    message: "Select the new role",
+                    choices: choicesRole
+                }
+            ]).then(data => {
+                connection.query(`UPDATE employee SET role_id = ${data.newEmployeeRole} WHERE id =${data.employeeUpdate};`, function (err, res) {
+                    if (err) throw err;
+                    console.log(data.employeeUpdate+"'s role has been updated!")
+                })
+                run();
             })
         }
         // end of.then
