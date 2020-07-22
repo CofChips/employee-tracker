@@ -166,7 +166,8 @@ function run() {
                 "Add employees",
                 "Add roles",
                 "Add departments",
-                "Update employee roles"
+                "Update employee roles",
+                "Update employee manager"
             ]
         }
 
@@ -291,7 +292,7 @@ function run() {
                     {
                         type: "list",
                         name: "employeeUpdate",
-                        message: "Select the employee id update",
+                        message: "Select the employee to update",
                         choices: choicesEmployee
                     },
                     {
@@ -308,6 +309,30 @@ function run() {
                     })
 
                 })
+                break;
+
+                case "Update employee manager":
+                    inquirer.prompt([
+                        {
+                            type: "list",
+                            name: "employeeUpdate",
+                            message: "Select the employee to update",
+                            choices: choicesEmployee
+                        },
+                        {
+                            type: "list",
+                            name: "newEmployeeManager",
+                            message: "Select the new manager",
+                            choices: choicesManager
+                        }
+                    ]).then(data => {
+                        connection.query(`UPDATE employee SET manager_id = ? WHERE id = ?;`, [data.newEmployeeManager, data.employeeUpdate],function (err, res) {
+                            if (err) throw err;
+                            console.log("Manager has been updated!")
+                            run();
+                        })
+
+                    })
                 break;
         }
     })
