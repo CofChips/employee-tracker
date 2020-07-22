@@ -63,3 +63,6 @@ SELECT role.title, department.department, role.salary
 FROM (role
 INNER JOIN department ON role.department_id = department.id);
 
+SELECT id
+FROM department
+WHERE department = 'Marketing';

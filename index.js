@@ -21,59 +21,21 @@ INNER JOIN department ON role.department_id = department.id);`
 
 const queryDepartments = `SELECT department FROM department;`
 
-// const addDepartment = `INSERT INTO department (department)
-// VALUES ("${department}");`
-
-
-// var sql = "SELECT * FROM ?? WHERE ?? = ?";
-// var inserts = ['users', 'id', userId];
-// sql = mysql.format(sql, inserts);
-
 const connection = mysql.createConnection({
     host: "localhost",
 
-    // Your port; if not 3306
     port: 3306,
 
-    // Your username
     user: "root",
 
-    // Your password
     password: "password",
     database: "employees_db"
 });
 
 connection.connect(function (err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId);
-    // afterConnection();
-    // afterConnection2();
 });
 
-function afterConnection() {
-    // connection.query("SELECT * FROM employee", function (err, res) {
-    //     if (err) throw err;
-    //       console.log(res);
-    //       console.log("Test: "+res[0].id)
-    //     // console.table(res);
-    //     //   connection.end();
-    // });
-
-    let choices = [];
-    connection.query(queryDepartments, function (err, res) {
-        if (err) throw err;
-        for (let i = 0; i < res.length; i++) {
-
-            choices.push(res[i].department)
-        }
-        console.log("choices: " + choices)
-    });
-
-}
-
-function departmentChoices() {
-
-}
 
 function viewAllEmployees() {
     const employeeList = [];
@@ -86,14 +48,14 @@ function viewAllEmployees() {
     });
     connection.query(queryAll2, function (err, res) {
         if (err) throw err;
-        for (let j = 0; j < res.length; j++) {      
-                employeeManager.push(res[j])
+        for (let j = 0; j < res.length; j++) {
+            employeeManager.push(res[j])
         }
 
-        for (let k = 0; k<employeeList.length; k++){
-            for (let l = 0; l<employeeManager.length; l++){
-                if(employeeList[k].id===employeeManager[l].id){
-                    employeeList[k].manager=employeeManager[l].manager
+        for (let k = 0; k < employeeList.length; k++) {
+            for (let l = 0; l < employeeManager.length; l++) {
+                if (employeeList[k].id === employeeManager[l].id) {
+                    employeeList[k].manager = employeeManager[l].manager
                 }
             }
         }
@@ -101,18 +63,15 @@ function viewAllEmployees() {
         console.table(employeeList)
         run();
     })
-
 }
 
 function viewRoles() {
     connection.query(queryRoles, function (err, res) {
         if (err) throw err;
-        //   console.log(res);
         console.log('\n');
         console.table(res);
-        //   connection.end();
         run();
-        ;
+
     });
 }
 
@@ -122,37 +81,37 @@ function viewDeparment() {
         console.log('\n');
         console.table(res);
         run();
+
     });
+
 }
 
 function newDepartment(department) {
     connection.query(`INSERT INTO department (department)
     VALUES ("${department}");`, function (err, res) {
-        if (err) throw err;
-        // console.log('\n');
-        // console.table(res);
-        run();
+        if (err) throw err;    
     });
+    console.log("\nNew department added!\n");
+    run();
 }
 
 function newRole(title, salary, department_id) {
     connection.query(`INSERT INTO role (title, salary, department_id)
     VALUES ("${title}", ${salary}, ${department_id});`, function (err, res) {
         if (err) throw err;
-        // console.log('\n');
-        // console.table(res);
     });
+    console.log("\nNew role added!\n");
+    run();
 }
 
-// console.table([
-//     {
-//       name: 'foo',
-//       age: 10
-//     }, {
-//       name: 'bar',
-//       age: 20
-//     }
-//   ]);
+function newEmployee(first_name, last_name, role_id, manager_id) {
+    connection.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id)
+    VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id});`, function (err, res) {
+        if (err) throw err;
+    });
+    console.log("\nNew employee added!\n");
+    run();
+}
 
 
 function run() {
@@ -227,17 +186,81 @@ function run() {
                 connection.query(`SELECT id FROM department WHERE department='${data.newRoleDepartment}';`, function (err, res) {
                     if (err) throw err;
                     newRoleDepartment = res[0].id;
-                    console.log(res);
-                    console.log(parseInt(newRoleDepartment));
                     newRole(data.newRoleName, data.newRoleSalary, newRoleDepartment);
                 })
-
-
-
-                // newRole(data.newRoleName, data.newRoleSalary)
             })
         }
-    })
-}
+        else if (data.startPoint === "Add employees") {
+            let choicesRole = [];
+            connection.query(queryRoles, function (err, res) {
+                if (err) throw err;
+                for (let i = 0; i < res.length; i++) {
+                    choicesRole.push(res[i].title)
+                }
+            });
+            let choicesManager = [];
+            connection.query("SELECT CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
+                if (err) throw err;
+                for (let i = 0; i < res.length; i++) {
+                    choicesManager.push(res[i]["CONCAT (first_name, ' ', last_name)"]);
+                }
+                choicesManager.push("None")
+            });
 
+            inquirer.prompt([
+                {
+                    type: "input",
+                    name: "newEmployeeFirstName",
+                    message: "What is the first name of the new employee?"
+                },
+                {
+                    type: "input",
+                    name: "newEmployeeLastName",
+                    message: "What is the last name of the new employee?"
+                },
+                {
+                    type: "list",
+                    name: "newEmployeeRole",
+                    message: "What is the role of the new employee?",
+                    choices: choicesRole
+
+                },
+                {
+                    type: "list",
+                    name: "newEmployeeManager",
+                    message: "Who is the manager of the new employee?",
+                    choices: choicesManager
+
+                }
+            ]).then(data => {
+                if (data.newEmployeeManager === "None") {
+                    let newEmployeeRole = "";
+                    connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
+                        if (err) throw err;
+                        newEmployeeRole = res[0].id;
+                        newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, 0);
+                    })
+  
+                }
+                else {
+                    let newEmployeeRole = "";
+                    connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
+                        if (err) throw err;
+                        newEmployeeRole = res[0].id;
+                    })
+
+                    let newEmployeeManager = "";
+
+                    connection.query(`SELECT id FROM employee WHERE CONCAT (first_name, ' ', last_name)='${data.newEmployeeManager}';`, function (err, res) {
+                        if (err) throw err;
+                        newEmployeeManager = res[0].id;
+                        newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, newEmployeeManager);
+                    })
+                }
+            })
+        }
+        // end of.then
+    })
+    // end of run
+}
 run();
