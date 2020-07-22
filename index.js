@@ -3,6 +3,22 @@ const inquirer = require("inquirer");
 
 const ctable = require('console.table');
 
+const connection = mysql.createConnection({
+    host: "localhost",
+
+    port: 3306,
+
+    user: "root",
+
+    password: "password",
+    database: "employees_db"
+});
+
+connection.connect(function (err) {
+    if (err) throw err;
+});
+
+// const for queries
 const queryAll1 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department, role.salary
 FROM ((employee
 INNER JOIN role ON employee.role_id = role.id)
@@ -19,24 +35,11 @@ const queryRoles = `SELECT role.title, department.department, role.salary
 FROM (role
 INNER JOIN department ON role.department_id = department.id);`
 
-const queryDepartments = `SELECT department FROM department;`
+const queryAllRole = `SELECT * FROM role;`
 
-const connection = mysql.createConnection({
-    host: "localhost",
+const queryDepartments = `SELECT * FROM department;`
 
-    port: 3306,
-
-    user: "root",
-
-    password: "password",
-    database: "employees_db"
-});
-
-connection.connect(function (err) {
-    if (err) throw err;
-});
-
-
+// functions 
 function viewAllEmployees() {
     const employeeList = [];
     const employeeManager = [];
@@ -88,7 +91,7 @@ function viewDeparment() {
 
 function newDepartment(department) {
     connection.query(`INSERT INTO department (department)
-    VALUES ("${department}");`, function (err, res) {
+    VALUES (?);`, [department], function (err, res) {
         if (err) throw err;
     });
     console.log("\nNew department added!\n");
@@ -97,7 +100,7 @@ function newDepartment(department) {
 
 function newRole(title, salary, department_id) {
     connection.query(`INSERT INTO role (title, salary, department_id)
-    VALUES ("${title}", ${salary}, ${department_id});`, function (err, res) {
+    VALUES (?, ?, ?);`, [title, salary, department_id],function (err, res) {
         if (err) throw err;
     });
     console.log("\nNew role added!\n");
@@ -106,14 +109,14 @@ function newRole(title, salary, department_id) {
 
 function newEmployee(first_name, last_name, role_id, manager_id) {
     connection.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id)
-    VALUES ("${first_name}", "${last_name}", ${role_id}, ${manager_id});`, function (err, res) {
+    VALUES (?, ?, ?, ?);`, [first_name, last_name, role_id, manager_id], function (err, res) {
         if (err) throw err;
     });
     console.log("\nNew employee added!\n");
     run();
 }
 
-
+// runs app
 function run() {
 
     let choicesEmployee = [];
@@ -122,9 +125,7 @@ function run() {
         for (let j = 0; j < res.length; j++) {
             choicesEmployee.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
         }
-        // console.log(choicesEmployee)
     });
-
 
     let choicesRole = [];
     let choicesAllRole = [];
@@ -134,8 +135,23 @@ function run() {
             choicesRole.push({ name: res[i].title, value: res[i].id })
             choicesAllRole.push(res[i])
         }
-        // console.log(choicesRole)
+    });
 
+    let choicesDepartment = [];
+    connection.query(queryDepartments, function (err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            choicesDepartment.push({ name: res[i].department, value: res[i].id })
+        }
+    });
+
+    let choicesManager = [];
+    connection.query("SELECT id, CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
+        if (err) throw err;
+        for (let j = 0; j < res.length; j++) {
+            choicesManager.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
+        }
+        choicesManager.push({name: "None", value: 0})
     });
 
     inquirer.prompt([
@@ -155,194 +171,138 @@ function run() {
         }
 
     ]).then(data => {
-        if (data.startPoint === "View employees") {
-            viewAllEmployees()
-        }
-        else if (data.startPoint === "View roles") {
-            viewRoles()
-        }
-        else if (data.startPoint === "View departments") {
-            viewDeparment()
-        }
-        else if (data.startPoint === "Add departments") {
-            inquirer.prompt([
-                {
-                    type: "input",
-                    name: "newDepartment",
-                    message: "What is the name of the new department?"
-                }
+        switch (data.startPoint) {
+            case "View employees":
+                return viewAllEmployees();
 
-            ]).then(data => {
-                newDepartment(data.newDepartment);
-            })
-        }
-        else if (data.startPoint === "Add roles") {
-            let choices = [];
-            connection.query(queryDepartments, function (err, res) {
-                if (err) throw err;
-                for (let i = 0; i < res.length; i++) {
-                    choices.push(res[i].department)
-                }
-            });
+            case "View roles":
+                return viewRoles();
 
-            inquirer.prompt([
-                {
-                    type: "input",
-                    name: "newRoleName",
-                    message: "What is the name of the new role?",
-                    validate: function (value) {
-                        if (value) {
-                            return true
-                        }
-                        else {
-                            return "Please enter a role name"
-                        }
+            case "View departments":
+                return viewDeparment();
+
+            case "Add departments":
+                inquirer.prompt([
+                    {
+                        type: "input",
+                        name: "newDepartment",
+                        message: "What is the name of the new department?"
                     }
-                },
-                {
-                    type: "input",
-                    name: "newRoleSalary",
-                    message: "What is the salary of the new role?",
-                    validate: function (value) {
-                        var valid = !isNaN(parseFloat(value));
-                        return valid || 'Please enter a number';
+
+                ]).then(data => {
+                    newDepartment(data.newDepartment);
+                })
+                break;
+
+            case "Add roles":
+                inquirer.prompt([
+                    {
+                        type: "input",
+                        name: "newRoleName",
+                        message: "What is the name of the new role?",
+                        validate: function (value) {
+                            if (value) {
+                                return true
+                            }
+                            else {
+                                return "Please enter a role name"
+                            }
+                        }
                     },
-                    filter: Number,
-                },
-                {
-                    type: "list",
-                    name: "newRoleDepartment",
-                    message: "Which department does the new role belong to?",
-                    choices: choices
+                    {
+                        type: "input",
+                        name: "newRoleSalary",
+                        message: "What is the salary of the new role?",
+                        validate: function (value) {
+                            var valid = !isNaN(parseFloat(value));
+                            return valid || 'Please enter a number';
+                        },
+                        filter: Number,
+                    },
+                    {
+                        type: "list",
+                        name: "newRoleDepartment",
+                        message: "Which department does the new role belong to?",
+                        choices: choicesDepartment
 
-                }
-            ]).then(data => {
-                let newRoleDepartment = "";
-                connection.query(`SELECT id FROM department WHERE department='${data.newRoleDepartment}';`, function (err, res) {
-                    if (err) throw err;
-                    newRoleDepartment = res[0].id;
-                    newRole(data.newRoleName, data.newRoleSalary, newRoleDepartment);
-                })
-            })
-        }
-        else if (data.startPoint === "Add employees") {
-            let choicesRole = [];
-            connection.query(queryRoles, function (err, res) {
-                if (err) throw err;
-                for (let i = 0; i < res.length; i++) {
-                    choicesRole.push(res[i].title)
-                }
-            });
-            let choicesManager = [];
-            connection.query("SELECT CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
-                if (err) throw err;
-                for (let i = 0; i < res.length; i++) {
-                    choicesManager.push(res[i]["CONCAT (first_name, ' ', last_name)"]);
-                }
-                choicesManager.push("None")
-            });
-
-            inquirer.prompt([
-                {
-                    type: "input",
-                    name: "newEmployeeFirstName",
-                    message: "What is the first name of the new employee?",
-                    valdiate: function (value) {
-                        if (value) {
-                            return true
-                        }
-                        else {
-                            return "Please enter a first name"
-                        }
                     }
-                },
-                {
-                    type: "input",
-                    name: "newEmployeeLastName",
-                    message: "What is the last name of the new employee?",
-                    valdiate: function (value) {
-                        if (value) {
-                            return true
-                        }
-                        else {
-                            return "Please enter a last name"
-                        }
-                    }
-                },
-                {
-                    type: "list",
-                    name: "newEmployeeRole",
-                    message: "What is the role of the new employee?",
-                    choices: choicesRole
-
-                },
-                {
-                    type: "list",
-                    name: "newEmployeeManager",
-                    message: "Who is the manager of the new employee?",
-                    choices: choicesManager
-
-                }
-            ]).then(data => {
-                if (data.newEmployeeManager === "None") {
-                    let newEmployeeRole = "";
-                    connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
-                        if (err) throw err;
-                        newEmployeeRole = res[0].id;
-                        newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, 0);
-                    })
-
-                }
-                else {
-
-                    let newEmployeeRole = "";
-                    connection.query(`SELECT id FROM role WHERE title='${data.newEmployeeRole}';`, function (err, res) {
-                        if (err) throw err;
-                        newEmployeeRole = res[0].id;
-                    })
-
-                    let newEmployeeManager = "";
-
-                    connection.query(`SELECT id FROM employee WHERE CONCAT (first_name, ' ', last_name)='${data.newEmployeeManager}';`, function (err, res) {
-                        if (err) throw err;
-                        newEmployeeManager = res[0].id;
-                        newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, newEmployeeRole, newEmployeeManager);
-                    })
-                }
-            })
-
-
-
-
-        }
-
-        else if (data.startPoint === "Update employee roles") {
-
-            inquirer.prompt([
-
-                {
-                    type: "list",
-                    name: "employeeUpdate",
-                    message: "Select the employee id update",
-                    choices: choicesEmployee
-                },
-                {
-                    type: "list",
-                    name: "newEmployeeRole",
-                    message: "Select the new role",
-                    choices: choicesRole
-                }
-            ]).then(data => {
-                connection.query(`UPDATE employee SET role_id = ${data.newEmployeeRole} WHERE id =${data.employeeUpdate};`, function (err, res) {
-                    if (err) throw err;
-                    console.log("Role has been updated!")
-                    run();
+                ]).then(data => {
+                    newRole(data.newRoleName, data.newRoleSalary, data.newRoleDepartment);
                 })
+                break;
 
-            })
+            case "Add employees":
+                inquirer.prompt([
+                    {
+                        type: "input",
+                        name: "newEmployeeFirstName",
+                        message: "What is the first name of the new employee?",
+                        validate: function (value) {
+                            if (value) {
+                                return true
+                            }
+                            else {
+                                return "Please enter a first name"
+                            }
+                        }
+                    },
+                    {
+                        type: "input",
+                        name: "newEmployeeLastName",
+                        message: "What is the last name of the new employee?",
+                        validate: function (value) {
+                            if (value) {
+                                return true
+                            }
+                            else {
+                                return "Please enter a last name"
+                            }
+                        }
+                    },
+                    {
+                        type: "list",
+                        name: "newEmployeeRole",
+                        message: "What is the role of the new employee?",
+                        choices: choicesRole
+
+                    },
+                    {
+                        type: "list",
+                        name: "newEmployeeManager",
+                        message: "Who is the manager of the new employee?",
+                        choices: choicesManager
+
+                    }
+                ]).then(data => {
+                    newEmployee(data.newEmployeeFirstName, data.newEmployeeLastName, data.newEmployeeRole, data.newEmployeeManager);
+                })
+                break;
+
+            case "Update employee roles":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "employeeUpdate",
+                        message: "Select the employee id update",
+                        choices: choicesEmployee
+                    },
+                    {
+                        type: "list",
+                        name: "newEmployeeRole",
+                        message: "Select the new role",
+                        choices: choicesRole
+                    }
+                ]).then(data => {
+                    connection.query(`UPDATE employee SET role_id = ? WHERE id = ?;`, [data.newEmployeeRole, data.employeeUpdate],function (err, res) {
+                        if (err) throw err;
+                        console.log("Role has been updated!")
+                        run();
+                    })
+
+                })
+                break;
         }
-        // end of.then
     })
-    // end of run
 }
+
 run();
