@@ -100,7 +100,7 @@ function newDepartment(department) {
 
 function newRole(title, salary, department_id) {
     connection.query(`INSERT INTO role (title, salary, department_id)
-    VALUES (?, ?, ?);`, [title, salary, department_id],function (err, res) {
+    VALUES (?, ?, ?);`, [title, salary, department_id], function (err, res) {
         if (err) throw err;
     });
     console.log("\nNew role added!\n");
@@ -125,11 +125,11 @@ function viewEmployeesbyManager(manager) {
     INNER JOIN department ON role.department_id = department.id)
     WHERE employee.manager_id = ${manager};`
         , function (err, res) {
-        if (err) throw err;
-        for (let i = 0; i < res.length; i++) {
-            employeeList.push(res[i])
-        }
-    });
+            if (err) throw err;
+            for (let i = 0; i < res.length; i++) {
+                employeeList.push(res[i])
+            }
+        });
     connection.query(queryAll2, function (err, res) {
         if (err) throw err;
         for (let j = 0; j < res.length; j++) {
@@ -184,7 +184,7 @@ function run() {
         for (let j = 0; j < res.length; j++) {
             choicesManager.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
         }
-        choicesManager.push({name: "None", value: null})
+        choicesManager.push({ name: "None", value: null })
     });
 
     inquirer.prompt([
@@ -201,7 +201,12 @@ function run() {
                 "Add departments",
                 "Update employee roles",
                 "Update employee manager",
-                "View employees by manager"
+                "View employees by manager",
+                "View the total utilized budget of a department",
+                "Delete departments",
+                "Delete roles",
+                "Remove employees",
+                "Exit"
             ]
         }
 
@@ -336,52 +341,136 @@ function run() {
                         choices: choicesRole
                     }
                 ]).then(data => {
-                    connection.query(`UPDATE employee SET role_id = ? WHERE id = ?;`, [data.newEmployeeRole, data.employeeUpdate],function (err, res) {
+                    connection.query(`UPDATE employee SET role_id = ? WHERE id = ?;`, [data.newEmployeeRole, data.employeeUpdate], function (err, res) {
                         if (err) throw err;
-                        console.log("Role has been updated!")
+                        console.log("\nRole has been updated!\n")
                         run();
                     })
 
                 })
                 break;
 
-                case "Update employee manager":
-                    inquirer.prompt([
-                        {
-                            type: "list",
-                            name: "employeeUpdate",
-                            message: "Select the employee to update",
-                            choices: choicesEmployee
-                        },
-                        {
-                            type: "list",
-                            name: "newEmployeeManager",
-                            message: "Select the new manager",
-                            choices: choicesManager
-                        }
-                    ]).then(data => {
-                        connection.query(`UPDATE employee SET manager_id = ? WHERE id = ?;`, [data.newEmployeeManager, data.employeeUpdate],function (err, res) {
-                            if (err) throw err;
-                            console.log("Manager has been updated!")
-                            run();
-                        })
-
+            case "Update employee manager":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "employeeUpdate",
+                        message: "Select the employee to update",
+                        choices: choicesEmployee
+                    },
+                    {
+                        type: "list",
+                        name: "newEmployeeManager",
+                        message: "Select the new manager",
+                        choices: choicesManager
+                    }
+                ]).then(data => {
+                    connection.query(`UPDATE employee SET manager_id = ? WHERE id = ?;`, [data.newEmployeeManager, data.employeeUpdate], function (err, res) {
+                        if (err) throw err;
+                        console.log("\nManager has been updated!\n")
+                        run();
                     })
+
+                })
                 break;
 
-                case "View employees by manager":
-                    inquirer.prompt([
-                        {
-                            type: "list",
-                            name: "employeeManager",
-                            message: "Select the manager",
-                            choices: choicesEmployee
+            case "View employees by manager":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "employeeManager",
+                        message: "Select the manager",
+                        choices: choicesEmployee
+                    }
+                ]).then(data => {
+                    viewEmployeesbyManager(data.employeeManager)
+
+
+                })
+                break;
+
+            case "View the total utilized budget of a department":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "departmentBudget",
+                        message: "Select the department",
+                        choices: choicesDepartment
+                    }
+                ]).then(data => {
+                    connection.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department, role.salary
+                    FROM ((employee
+                    INNER JOIN role ON employee.role_id = role.id)
+                    INNER JOIN department ON role.department_id = department.id)
+                    WHERE role.department_id = ?;`, [data.departmentBudget], function (err, res) {
+                        if (err) throw err;
+                        let budget = 0;
+                        for (let i = 0; i < res.length; i++) {
+                            budget += res[i].salary
+
                         }
-                    ]).then(data => {
-                        viewEmployeesbyManager(data.employeeManager)
-                        
+                        console.log("\nDepartment budget: "+budget+'\n')
+                        run();
+                    })
+                })
+                break;
+
+            case "Delete departments":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "departmentDelete",
+                        message: "Select the department to remove",
+                        choices: choicesDepartment
+                    }
+                ]).then(data => {
+                    connection.query(`DELETE FROM department WHERE id = ?`, [data.departmentDelete], function (err, res) {
+                        if (err) throw err;
+                        console.log("\nDepartment has been removed!\n")
+                        run();
 
                     })
+                })
+                break;
+
+            case "Delete roles":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "roleDelete",
+                        message: "Select the role to remove",
+                        choices: choicesRole
+                    }
+                ]).then(data => {
+                    connection.query(`DELETE FROM role WHERE id = ?`, [data.roleDelete], function (err, res) {
+                        if (err) throw err;
+                        console.log("\nRole has been removed!\n")
+                        run();
+
+                    })
+                })
+                break;
+
+            case "Remove employees":
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "employeeDelete",
+                        message: "Select the employee to remove",
+                        choices: choicesEmployee
+                    }
+                ]).then(data => {
+                    connection.query(`DELETE FROM employee WHERE id = ?`, [data.employeeDelete], function (err, res) {
+                        if (err) throw err;
+                        console.log("\nEmployee has been removed!\n")
+                        run();
+
+                    })
+                })
+                break;
+
+                case "Exit":
+                    connection.end();
                 break;
         }
     })
