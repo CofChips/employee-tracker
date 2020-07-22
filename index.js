@@ -178,14 +178,8 @@ function run() {
         }
     });
 
-    let choicesManager = [];
-    connection.query("SELECT id, CONCAT (first_name, ' ', last_name) FROM employee", function (err, res) {
-        if (err) throw err;
-        for (let j = 0; j < res.length; j++) {
-            choicesManager.push({ name: res[j]["CONCAT (first_name, ' ', last_name)"], value: res[j].id });
-        }
+    let choicesManager = choicesEmployee;
         choicesManager.push({ name: "None", value: null })
-    });
 
     inquirer.prompt([
         {
