@@ -116,6 +116,39 @@ function newEmployee(first_name, last_name, role_id, manager_id) {
     run();
 }
 
+function viewEmployeesbyManager(manager) {
+    const employeeList = [];
+    const employeeManager = [];
+    connection.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department, role.salary
+    FROM ((employee
+    INNER JOIN role ON employee.role_id = role.id)
+    INNER JOIN department ON role.department_id = department.id)
+    WHERE employee.manager_id = ${manager};`
+        , function (err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            employeeList.push(res[i])
+        }
+    });
+    connection.query(queryAll2, function (err, res) {
+        if (err) throw err;
+        for (let j = 0; j < res.length; j++) {
+            employeeManager.push(res[j])
+        }
+
+        for (let k = 0; k < employeeList.length; k++) {
+            for (let l = 0; l < employeeManager.length; l++) {
+                if (employeeList[k].id === employeeManager[l].id) {
+                    employeeList[k].manager = employeeManager[l].manager
+                }
+            }
+        }
+        console.log('\n')
+        console.table(employeeList)
+        run();
+    })
+}
+
 // runs app
 function run() {
 
@@ -167,7 +200,8 @@ function run() {
                 "Add roles",
                 "Add departments",
                 "Update employee roles",
-                "Update employee manager"
+                "Update employee manager",
+                "View employees by manager"
             ]
         }
 
@@ -331,6 +365,21 @@ function run() {
                             console.log("Manager has been updated!")
                             run();
                         })
+
+                    })
+                break;
+
+                case "View employees by manager":
+                    inquirer.prompt([
+                        {
+                            type: "list",
+                            name: "employeeManager",
+                            message: "Select the manager",
+                            choices: choicesEmployee
+                        }
+                    ]).then(data => {
+                        viewEmployeesbyManager(data.employeeManager)
+                        
 
                     })
                 break;
